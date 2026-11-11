@@ -1,0 +1,45 @@
+name: Publish redesign demo
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out portfolio redesign
+        uses: actions/checkout@v4
+        with:
+          repository: polyakov-egor/polyakoff-portfolio
+          ref: redesign
+          persist-credentials: false
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Stage and check the website
+        run: |
+          mkdir dist
+          cp ./*.html ./*.css ./*.js dist/
+          cp -R assets dist/
+          rm -f dist/background-lines.js dist/background-line-warp.js \
+            dist/background-lines.css dist/inspiration-glass.js \
+            dist/assets/images/line-masks.js
+          node reference/production-source-check.cjs dist --staged
+          git rev-parse HEAD
+      - name: Upload website files
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Publish redesign
+        id: deployment
+        uses: actions/deploy-pages@v5
